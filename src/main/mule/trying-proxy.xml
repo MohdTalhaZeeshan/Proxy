@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="804e8115-ab9a-4671-a686-83cf05030bad" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="d648ed98-1c9a-4a4f-8584-944f3c558514" >
+		<http:request-connection protocol="HTTPS" host="get-patients-api-sp8iup.5sc6y6-4.usa-e2.cloudhub.io" port="443" />
+	</http:request-config>
+	<http:request-config name="HTTP_Request_configuration1" doc:name="HTTP Request configuration" doc:id="926c72f1-fa95-4bd5-8f46-d8f25efb9f88" >
+		<http:request-connection host="get-doctors-pai-sp8iup.5sc6y6-2.usa-e2.cloudhub.io" port="443" protocol="HTTPS"/>
+	</http:request-config>
+	<flow name="trying-proxyFlow" doc:id="1b9cbc99-7590-4c25-8204-c7dc13b5f14a" >
+		<http:listener doc:name="Listener" doc:id="3752651a-ae52-4ff8-8f9c-09edf4540bda" config-ref="HTTP_Listener_config" path="/choice/*"/>
+		<logger level="INFO" doc:name="Logger" doc:id="3d011a8d-67b9-457a-98bb-4be045be2388" />
+		<choice doc:name="Choice" doc:id="6301ffe5-4df6-4271-b4eb-87954530c111" >
+			<when expression='#[(attributes.maskedRequestPath splitBy  "/")[1] == "getpatients"]'>
+				<http:request method="GET" doc:name="Request" doc:id="eafe6aa6-f42a-4cb9-8820-6dcc2acdde88" config-ref="HTTP_Request_configuration" path="/api/getpatients" responseTimeout="30000000"/>
+				<ee:transform doc:name="Transform Message" doc:id="3465789a-395c-49dc-a528-dc0d575d350d" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<when expression='#[(attributes.maskedRequestPath splitBy  "/")[1] == "getdoctors"]'>
+				<http:request method="GET" doc:name="Request" doc:id="88e692ee-6d4a-4f88-be21-cc42b02e93f4" config-ref="HTTP_Request_configuration1" path="/api/getdoctors" responseTimeout="3000000"/>
+				<ee:transform doc:name="Transform Message" doc:id="714ebd37-d98c-4ead-a098-9bec599b98de" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<raise-error doc:name="Raise error" doc:id="41909b70-855b-426f-9368-054dd162c4de" type="RESOURCE:INVALID" description="Resource is not valid."/>
+			</otherwise>
+		</choice>
+		<logger level="INFO" doc:name="Logger" doc:id="bc4efa5b-d089-4395-b9b4-b617f3dcb5a8" message='#["End"]'/>
+	</flow>
+</mule>
